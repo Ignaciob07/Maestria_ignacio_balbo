@@ -2,22 +2,15 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import numpy as np 
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-import control as cm
-import scipy.fft as fft
 import scipy.signal as sig
 from scipy.signal import welch
 from scipy import signal
-from scipy.signal import lfilter as filt
-from numpy.random import randint as randi
 import scipy.signal as scF
 from rcosdesign import rcosdesign as rcos
-from matplotlib.gridspec import GridSpec
 import matplotlib
-from fractions import Fraction
 from decimal import *
 from tool._fixedInt import *
-from scipy.stats import kurtosis, skew
+from scipy.stats import gaussian_kde  # For smooth PDF estimation
 from numpy import i0
 matplotlib.use('TkAgg')
 
@@ -107,10 +100,10 @@ def channel_fir(fcut, fs_ch, plt_en=False):
 
     print("CHANNEL DESIGN: FIR")
 
-    ORDER = 127                      # filter length - 1
-    f_cut = fcut                       # Hz
-    b = sig.firwin(ORDER+1, f_cut/(fs_ch/2))
-    a = 1                            # FIR → no denominator
+    ORDER = 127 # filter length - 1
+    f_cut = fcut - fcut/20 # Hz
+    b = sig.firwin(ORDER+1, f_cut/(fs_ch/2), window='blackmanharris')
+    a = 1 # FIR → no denominator
 
     # --- Frequency response ---
     w, h = sig.freqz(b, a, worN=4096, fs=fs_ch)  # w in Hz
@@ -118,8 +111,8 @@ def channel_fir(fcut, fs_ch, plt_en=False):
 
     # --- Attenuation at Nyquist frequency ---
     idx = np.argmin(np.abs(w - f_target))
-    atten_50GHz = 20 * np.log10(np.abs(h[idx]))
-    print(f"Attenuation at {f_target/1e9:.2f} GHz: {atten_50GHz:.2f} dB\n")
+    attenGHz = 20 * np.log10(np.abs(h[idx]))
+    print(f"Attenuation at {f_target/1e9:.2f} GHz: {attenGHz:.2f} dB\n")
 
 
     # PLOT CHANNEL FREQUENCY RESPONSE
@@ -243,4 +236,22 @@ def plot_ffe(FFE_history, DOWN_PLOT):
     plt.grid(True)
     plt.show()
 
+def pdf_in_out(in_ffe_scope, ffe_out_scope):
+    # Plotting the PDF of the input data (in_ffe_scope)
+    plt.figure(figsize=(10, 6))
 
+    # Estimate PDF using histogram and normalize
+    plt.hist(in_ffe_scope, bins=100, density=True, alpha=0.6, color='blue', label='Input PDF')
+
+    # Plotting the PDF of the output data (ffe_out_scope)
+    plt.hist(ffe_out_scope, bins=100, density=True, alpha=0.6, color='red', label='Output PDF')
+
+    # Add labels and title
+    plt.title('PDF of Input and Output Data')
+    plt.xlabel('Amplitude')
+    plt.ylabel('Probability Density')
+    plt.legend()
+
+    # Show the plot
+    plt.grid(True)
+    plt.show()

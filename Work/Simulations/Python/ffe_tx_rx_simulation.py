@@ -24,8 +24,17 @@ fs_ch = CHANNEL_UP*SR # Sampling Frequency of the simulation
 # CHANNEL MODEL
 b,delay_ch = channel_fir(fcut=BW , fs_ch=fs_ch, plt_en=False)
 
+# Tx FFE
+FFE_TX_LEN = 5
+FFE_TX = np.zeros(FFE_TX_LEN)
+FFE_TX = [-0.186, 0.493, -0.210, 0.052, -0.059]
+delay_ffe_tx = FFE_TX_LEN // 2
+
+out_ffe_tx = np.convolve(b, symbols, mode="full")
+out_ffe_tx = out_ffe_tx[delay_ffe_tx: delay_ffe_tx + len(symbols)]
+
 # RAISED COSINE FILTER (PULSE SHAPING)
-out_upsampled = rrc(CHANNEL_UP, symbols, n_symbols)
+out_upsampled = rrc(CHANNEL_UP, out_ffe_tx, len(out_ffe_tx))
 
 # APPLY CHANNEL
 channel_symbols = np.convolve(b, out_upsampled, mode="full")
